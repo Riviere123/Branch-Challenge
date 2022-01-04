@@ -25,19 +25,22 @@ def check_for_branchId(branchId):
 def get_account_by_branchId(branchId):
     '''
     first checks if the branchId is in use. 
-    if entries are found formatts multiple entries into one
+    if entries are found formats multiple entries into one
+    by combining all the billing account numbers into the master account.
+    NOTE:It is not possible to create a billing account without already having a main account.
+    So account will never = None
     '''
     items = check_for_branchId(branchId)
     if items:
         accountNumbers = []
-        payload = None
+        account = None
         for item in items:
             if item['billingAccountNumber'] != "null":
                 accountNumbers.append(item['billingAccountNumber'])
             else:
-                payload = item
-        payload['billingAccountNumber'] = accountNumbers
-        return payload
+                account = item
+        account['billingAccountNumber'] = accountNumbers
+        return account
     else:
         return "branchId not in use."
 
