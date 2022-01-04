@@ -28,19 +28,21 @@ def get_account_by_branchId(branchId):
     if entries are found formats multiple entries into one
     by combining all the billing account numbers into the master account.
     NOTE:It is not possible to create a billing account without already having a main account.
-    So account will never = None
+    So account will never = None. The main accounts billingAccountNumber is set to "null" on creation.
     '''
-    items = check_for_branchId(branchId)
-    if items:
+    accounts = check_for_branchId(branchId)
+    if accounts:
         accountNumbers = []
-        account = None
-        for item in items:
-            if item['billingAccountNumber'] != "null":
-                accountNumbers.append(item['billingAccountNumber'])
+        main_account = None
+        for account in accounts:
+            if account['billingAccountNumber'] != "null":
+                accountNumbers.append(account['billingAccountNumber'])
             else:
-                account = item
-        account['billingAccountNumber'] = accountNumbers
-        return account
+                main_account = account
+        if main_account == None:
+            return "account not valid."
+        main_account['billingAccountNumber'] = accountNumbers
+        return main_account
     else:
         return "branchId not in use."
 
