@@ -8,7 +8,10 @@ dynamodb = boto3.resource('dynamodb', region_name=REGION_NAME, endpoint_url="htt
 table = dynamodb.Table('Branch')
 
 
-def get_branchId_by_billing(billingAccountNumber):  
+def get_branchId_by_billing(billingAccountNumber):
+    '''
+    returns the branchId of the provided billingAccountNumber
+    '''
     response = table.query(
         IndexName='billingAccountNumber-index',
         KeyConditionExpression=Key('billingAccountNumber').eq(str(billingAccountNumber))
@@ -18,6 +21,9 @@ def get_branchId_by_billing(billingAccountNumber):
     return branchId
 
 def delete_billing(billingAccountNumber):
+    '''
+    deletes the billing account with the provided number
+    '''
     branchId = get_branchId_by_billing(billingAccountNumber)
     table.delete_item(
         Key={

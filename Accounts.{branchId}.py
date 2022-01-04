@@ -8,6 +8,10 @@ dynamodb = boto3.resource('dynamodb', region_name=REGION_NAME, endpoint_url="htt
 table = dynamodb.Table('Branch')
 
 def check_for_branchId(branchId):
+    '''
+    Checks the table for any entries that have the given branchId.
+    returns the entries if it's found, else returns none
+    '''
     response = table.query(
             KeyConditionExpression=Key('branchId').eq(str(branchId))
         )
@@ -19,6 +23,10 @@ def check_for_branchId(branchId):
         return response['Items']
 
 def get_account_by_branchId(branchId):
+    '''
+    first checks if the branchId is in use. 
+    if entries are found formatts multiple entries into one
+    '''
     items = check_for_branchId(branchId)
     if items:
         accountNumbers = []
@@ -35,6 +43,10 @@ def get_account_by_branchId(branchId):
 
 
 def add_billing_account_number(branchId, billing_account_number):
+    '''
+    first checks if the branchId is in use. 
+    if so makes a new billingAccountNumber entry in the table.
+    '''
     if check_for_branchId(branchId):
         data = {
             'branchId':branchId,
@@ -47,20 +59,30 @@ def add_billing_account_number(branchId, billing_account_number):
         return "branchId not in use."
 
 def append_account_data(branchId, key, value):
-    table.update_item(
-    Key={
-        'branchId':branchId,
-        'billingAccountNumber':"null"
-        },
-        UpdateExpression=f'SET {key} = :val1',
-        ExpressionAttributeValues={
-            ':val1': value
-        }
-    )
-    account = get_account_by_branchId(branchId)
-    return account
+    '''
+    first checks if the branchId is in use. 
+    if so appends data to the main account
+    '''
+    if check_for_branchId(branchId):
+        table.update_item(
+        Key={
+            'branchId':branchId,
+            'billingAccountNumber':"null"
+            },
+            UpdateExpression=f'SET {key} = :val1',
+            ExpressionAttributeValues={
+                ':val1': value
+            }
+        )
+        account = get_account_by_branchId(branchId)
+        return account
+    else:
+        return "branchId not in use."
 
 def delete_account(branchId):
+    '''
+    deletes the account and all billing account entries sharing the same branchId
+    '''
     account = get_account_by_branchId(branchId)
     for billing in account['billingAccountNumber']:
         table.delete_item(

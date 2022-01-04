@@ -7,6 +7,9 @@ dynamodb = boto3.resource('dynamodb', region_name=REGION_NAME, endpoint_url="htt
 table = dynamodb.Table('Branch')
 
 def create_account(branchId, crmId):
+    '''
+    Creates a new entry into the table with the provided branchId and crmId
+    '''
     account = {
             'branchId': branchId,
             'billingAccountNumber': 'null',
