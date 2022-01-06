@@ -10,7 +10,7 @@ table = dynamodb.Table('Branch')
 def check_for_branchId(branchId):
     '''
     Checks the table for any entries that have the given branchId.
-    returns the entries if it's found, else returns none
+    returns the entries if it's found, else returns None
     '''
     response = table.query(
             KeyConditionExpression=Key('branchId').eq(str(branchId))
@@ -24,9 +24,7 @@ def check_for_branchId(branchId):
 
 def get_account_by_branchId(branchId):
     '''
-    first checks if the branchId is in use. 
-    if entries are found formats multiple entries into one
-    by combining all the billing account numbers into the master account.
+    finds and formats the branch account then returns the account object if it exists else returns None
     NOTE:It is not possible to create a billing account without already having a master account.
     So main_account will never = None. The master accounts billingAccountNumber is set to "null" on creation.
     '''
