@@ -27,46 +27,48 @@ def get_account_by_branchId(branchId):
     first checks if the branchId is in use. 
     if entries are found formats multiple entries into one
     by combining all the billing account numbers into the master account.
-    NOTE:It is not possible to create a billing account without already having a main account.
-    So account will never = None. The main accounts billingAccountNumber is set to "null" on creation.
+    NOTE:It is not possible to create a billing account without already having a master account.
+    So main_account will never = None. The master accounts billingAccountNumber is set to "null" on creation.
     '''
     accounts = check_for_branchId(branchId)
     if accounts:
-        accountNumbers = []
+        billing_accounts = {}
         main_account = None
         for account in accounts:
             if account['billingAccountNumber'] != "null":
-                accountNumbers.append(account['billingAccountNumber'])
+                billing_accounts[account['billingAccountNumber']] = {"serviceAccountNumber":account['serviceAccountNumber']}
             else:
                 main_account = account
         if main_account == None:
-            return "account not valid."
-        main_account['billingAccountNumber'] = accountNumbers
+            return "branchId not in use."
+        main_account['billingAccountNumber'] = billing_accounts
         return main_account
     else:
-        return "branchId not in use."
+        return None
 
 
 def add_billing_account_number(branchId, billing_account_number):
     '''
-    first checks if the branchId is in use. 
-    if so makes a new billingAccountNumber entry in the table.
+    first checks if the branchId is in use. if so makes a new billingAccountNumber entry in the table.
     '''
     if check_for_branchId(branchId):
         data = {
             'branchId':branchId,
-            'billingAccountNumber': billing_account_number
+            'billingAccountNumber': billing_account_number,
+            'serviceAccountNumber': []
         }
         table.put_item(Item=data)
         account = get_account_by_branchId(branchId)
         return account
     else:
-        return "branchId not in use."
+        return None
 
 def append_account_data(branchId, key, value):
     '''
-    first checks if the branchId is in use. 
-    if so appends data to the main account
+     Keyword arguments:
+     Key - the table key you wish to set
+     value - the value to set it to
+    first checks if the branchId is in use. if so appends data to the main account
     '''
     if check_for_branchId(branchId):
         table.update_item(
@@ -79,29 +81,37 @@ def append_account_data(branchId, key, value):
                 ':val1': value
             }
         )
+        #NOTE:Could have done a return value from update table but it would not inlcude the account numbers.
+        #Unfortunately this function does an update and a query. If we don't need to return the account we could drop
+        #the second query.
         account = get_account_by_branchId(branchId)
         return account
     else:
-        return "branchId not in use."
+        return None
 
 def delete_account(branchId):
     '''
     deletes the account and all billing account entries sharing the same branchId
     '''
-    account = get_account_by_branchId(branchId)
-    for billing in account['billingAccountNumber']:
+    try:
+        account = get_account_by_branchId(branchId)
+        for billing in account['billingAccountNumber']:
+            table.delete_item(
+                Key={
+                    'branchId': branchId,
+                    'billingAccountNumber': billing
+                }
+            )
         table.delete_item(
             Key={
                 'branchId': branchId,
-                'billingAccountNumber': billing
+                'billingAccountNumber': "null"
             }
         )
-    table.delete_item(
-        Key={
-            'branchId': branchId,
-            'billingAccountNumber': "null"
-        }
-    )
+        return f"account {branchId} deleted"
+    except:
+        return f"account {branchId}  not found"
+
 
 def lambda_handler(event, context):
     if event['httpMethod'] == "GET":
@@ -137,8 +147,8 @@ def lambda_handler(event, context):
     
     elif event['httpMethod'] == "DELETE":
         branchId = event["pathParameters"]["branchId"]
-        delete_account(branchId)
+        message = delete_account(branchId)
         return({
             "statusCode": 200,
-            "body": json.dumps("account deleted")
+            "body": json.dumps(message)
         })
