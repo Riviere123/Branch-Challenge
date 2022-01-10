@@ -8,14 +8,16 @@ dynamodb = boto3.resource('dynamodb', region_name=REGION_NAME, endpoint_url="htt
 table = dynamodb.Table('Branch')
 
 
-def get_branchId_by_billing(billingAccountNumber):
+def get_branchId_by_billing(billing_account_number):
     '''
     returns the branchId of the provided billingAccountNumber
     '''
     try:
+        if billing_account_number == "null":
+            return None
         response = table.query(
             IndexName='billingAccountNumber-index',
-            KeyConditionExpression=Key('billingAccountNumber').eq(str(billingAccountNumber))
+            KeyConditionExpression=Key('billingAccountNumber').eq(str(billing_account_number))
         )
         branchId = response["Items"][0]['branchId']
 
@@ -23,39 +25,40 @@ def get_branchId_by_billing(billingAccountNumber):
     except:
         return None
 
-def delete_billing(billingAccountNumber):
+def delete_billing(billing_account_number):
     '''
-    deletes the billing account using the billingAccountNumber
+    deletes the billing account using the billing_account_number
     '''
     try:
-        branchId = get_branchId_by_billing(billingAccountNumber)
+        branchId = get_branchId_by_billing(billing_account_number)
         table.delete_item(
             Key={
                 'branchId': branchId,
-                'billingAccountNumber': billingAccountNumber
+                'billingAccountNumber': billing_account_number
             }
         )
-        return f"billing account {billingAccountNumber} deleted."
+        return f"billing account {billing_account_number} deleted."
     except:
-        return f"billing account {billingAccountNumber} not found."
+        return f"billing account {billing_account_number} not found."
 
-def append_service_account_number(branchId, billingAccountNumber, serviceAccountNumber):
+def append_service_account_number(branchId, billing_account_number, service_account_number):
     '''
-    appends the serviceAccountNumber to the billing account
+    appends the service_account_number to the billing account
     '''
     try:
         response = table.update_item(
             Key={
                 'branchId': branchId,
-                'billingAccountNumber': billingAccountNumber
+                'billingAccountNumber': billing_account_number
             },
-            ConditionExpression="NOT contains(#SAN, :SAN)",
+            ConditionExpression="NOT contains(#SAN, :CON)",
             UpdateExpression="SET #SAN = list_append(#SAN,:SAN)",
             ExpressionAttributeNames={
                 "#SAN": "serviceAccountNumber"
             },
             ExpressionAttributeValues={
-                ":SAN": [serviceAccountNumber]
+                ":SAN": [service_account_number],
+                ":CON": service_account_number
             },
             ReturnValues='ALL_NEW'
             )
